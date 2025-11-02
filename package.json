@@ -1,0 +1,41 @@
+{
+  "name": "webcloner-js",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "webcloner-js": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "npm run build && node dist/cli.js",
+    "dev:watch": "ts-node --esm src/cli.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "web",
+    "scraper",
+    "cloner",
+    "downloader",
+    "offline"
+  ],
+  "author": "maornisan",
+  "license": "ISC",
+  "description": "Advanced stealthy website cloner with proxy support",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "https-proxy-agent": "^7.0.2",
+    "mime-types": "^2.1.35",
+    "commander": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/mime-types": "^2.1.4",
+    "eslint": "^9.39.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
