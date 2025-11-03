@@ -2,6 +2,8 @@
 
 A powerful, stealthy website cloner/scraper built with TypeScript that downloads entire websites for offline use. Supports HTTP proxy authentication, comprehensive asset downloading (CSS, JS, images, SVG sprites, fonts, etc.), and intelligent URL rewriting.
 
+**Now with a beautiful Electron GUI!** 🎨 See [ELECTRON_GUI.md](ELECTRON_GUI.md) for details.
+
 ## Features
 
 - 🚀 **Complete Website Cloning** - Downloads HTML, CSS, JavaScript, images, fonts, and all other assets
@@ -34,9 +36,20 @@ npm run build
 npm run dev -- <url> [options]
 ```
 
-## Usage
+## Quick Start
 
-### Basic Usage
+### GUI Application (Recommended)
+
+```bash
+# Run the Electron GUI
+npm run start:electron
+```
+
+The GUI provides an intuitive interface with all features accessible through a modern, minimalistic design.
+
+### CLI Usage
+
+#### Basic Usage
 
 ```bash
 # Clone a website to default directory (./cloned-site)

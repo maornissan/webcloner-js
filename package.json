@@ -8,9 +8,12 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:electron": "tsc -p tsconfig.electron.json && node copy-electron-assets.mjs",
     "start": "node dist/cli.js",
+    "start:electron": "npm run build:electron && electron dist-electron/electron/main.cjs",
     "dev": "npm run build && node dist/cli.js",
     "dev:watch": "ts-node --esm src/cli.ts",
+    "dev:electron": "NODE_ENV=development npm run build:electron && electron dist-electron/electron/main.cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -26,13 +29,14 @@
   "dependencies": {
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
+    "commander": "^11.1.0",
     "https-proxy-agent": "^7.0.2",
-    "mime-types": "^2.1.35",
-    "commander": "^11.1.0"
+    "mime-types": "^2.1.35"
   },
   "devDependencies": {
-    "@types/node": "^24.9.2",
     "@types/mime-types": "^2.1.4",
+    "@types/node": "^24.9.2",
+    "electron": "^39.0.0",
     "eslint": "^9.39.0",
     "prettier": "^3.6.2",
     "ts-node": "^10.9.2",
