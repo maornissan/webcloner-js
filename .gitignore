@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+dist-electron/
 *.js
 *.js.map
 *.d.ts
