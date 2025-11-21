@@ -10,7 +10,7 @@
     "build": "tsc",
     "build:electron": "tsc -p tsconfig.electron.json && node copy-electron-assets.mjs",
     "start": "node dist/cli.js",
-    "start:electron": "npm run build:electron && electron dist-electron/electron/main.cjs",
+    "start:electron": "npm run build:electron && electron dist-electron/electron/main.cjs --no-sandbox",
     "dev": "npm run build && node dist/cli.js",
     "dev:watch": "ts-node --esm src/cli.ts",
     "dev:electron": "NODE_ENV=development npm run build:electron && electron dist-electron/electron/main.cjs",

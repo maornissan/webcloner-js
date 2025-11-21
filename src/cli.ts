@@ -4,6 +4,13 @@ import { Command } from "commander";
 import { WebsiteCloner } from "./cloner.js";
 import type { ClonerConfig, ProxyConfig } from "./types.js";
 import * as path from "path";
+import {
+  saveProxyConfig,
+  loadProxyConfig,
+  listProxyConfigs,
+  deleteProxyConfig,
+  getConfigPath,
+} from "./config-manager.js";
 
 const program = new Command();
 
@@ -21,6 +28,8 @@ program
   .option("--proxy-port <port>", "Proxy port")
   .option("--proxy-user <username>", "Proxy username")
   .option("--proxy-pass <password>", "Proxy password")
+  .option("--load-proxy <name>", "Load saved proxy configuration by name")
+  .option("--save-proxy <name>", "Save current proxy configuration with a name")
   .option("--user-agent <agent>", "Custom user agent")
   .option("--follow-external", "Follow external links", false)
   .option(
@@ -35,13 +44,37 @@ program
     try {
       // Parse proxy configuration
       let proxy: ProxyConfig | undefined;
-      if (options.proxyHost && options.proxyPort) {
+
+      // Load saved proxy if specified
+      if (options.loadProxy) {
+        const loadedProxy = await loadProxyConfig(options.loadProxy);
+        if (!loadedProxy) {
+          console.error(
+            `❌ Proxy configuration '${options.loadProxy}' not found`
+          );
+          process.exit(1);
+        }
+        proxy = loadedProxy;
+        console.log(`✓ Loaded proxy configuration: ${options.loadProxy}`);
+      }
+      // Otherwise, use command-line proxy options
+      else if (options.proxyHost && options.proxyPort) {
         proxy = {
           host: options.proxyHost,
           port: parseInt(options.proxyPort, 10),
-          username: options.proxyUser,
-          password: options.proxyPass,
         };
+        if (options.proxyUser) {
+          proxy.username = options.proxyUser;
+        }
+        if (options.proxyPass) {
+          proxy.password = options.proxyPass;
+        }
+
+        // Save proxy if requested
+        if (options.saveProxy) {
+          await saveProxyConfig(options.saveProxy, proxy);
+          console.log(`✓ Saved proxy configuration as: ${options.saveProxy}`);
+        }
       }
 
       // Parse custom headers
@@ -87,6 +120,120 @@ program
     } catch (error) {
       console.error(
         "\n❌ Clone failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// Command to list saved proxy configurations
+program
+  .command("list-proxies")
+  .description("List all saved proxy configurations")
+  .option("--show-passwords", "Show proxy passwords (hidden by default)")
+  .action(async (options) => {
+    try {
+      const proxies = await listProxyConfigs();
+
+      if (proxies.length === 0) {
+        console.log("No saved proxy configurations found.");
+        console.log(`Config file: ${getConfigPath()}`);
+        return;
+      }
+
+      console.log(`\n📋 Saved Proxy Configurations (${proxies.length}):\n`);
+      console.log("=".repeat(80));
+
+      for (const proxy of proxies) {
+        console.log(`\n🔹 Name: ${proxy.name}`);
+        console.log(`   Host: ${proxy.host}`);
+        console.log(`   Port: ${proxy.port}`);
+        console.log(`   Username: ${proxy.username || "(none)"}`);
+
+        if (options.showPasswords) {
+          console.log(`   Password: ${proxy.password || "(none)"}`);
+        } else {
+          console.log(`   Password: ${proxy.password ? "********" : "(none)"}`);
+        }
+
+        console.log(
+          `   Created: ${new Date(proxy.createdAt).toLocaleString()}`
+        );
+        console.log(
+          `   Updated: ${new Date(proxy.updatedAt).toLocaleString()}`
+        );
+      }
+
+      console.log("\n" + "=".repeat(80));
+      console.log(`\nConfig file: ${getConfigPath()}`);
+      console.log(
+        "\nTip: Use --show-passwords to display passwords in plain text"
+      );
+    } catch (error) {
+      console.error(
+        "❌ Failed to list proxies:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// Command to show a specific proxy configuration
+program
+  .command("show-proxy <name>")
+  .description("Show details of a saved proxy configuration")
+  .option("--show-password", "Show proxy password (hidden by default)")
+  .action(async (name: string, options) => {
+    try {
+      const proxy = await loadProxyConfig(name);
+
+      if (!proxy) {
+        console.error(`❌ Proxy configuration '${name}' not found`);
+        process.exit(1);
+      }
+
+      console.log(`\n🔹 Proxy Configuration: ${name}\n`);
+      console.log("=".repeat(60));
+      console.log(`Host:     ${proxy.host}`);
+      console.log(`Port:     ${proxy.port}`);
+      console.log(`Username: ${proxy.username || "(none)"}`);
+
+      if (options.showPassword) {
+        console.log(`Password: ${proxy.password || "(none)"}`);
+      } else {
+        console.log(`Password: ${proxy.password ? "********" : "(none)"}`);
+      }
+
+      console.log("=".repeat(60));
+      console.log(
+        "\nTip: Use --show-password to display the password in plain text"
+      );
+    } catch (error) {
+      console.error(
+        "❌ Failed to show proxy:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+// Command to delete a proxy configuration
+program
+  .command("delete-proxy <name>")
+  .description("Delete a saved proxy configuration")
+  .action(async (name: string) => {
+    try {
+      const deleted = await deleteProxyConfig(name);
+
+      if (!deleted) {
+        console.error(`❌ Proxy configuration '${name}' not found`);
+        process.exit(1);
+      }
+
+      console.log(`✓ Deleted proxy configuration: ${name}`);
+    } catch (error) {
+      console.error(
+        "❌ Failed to delete proxy:",
         error instanceof Error ? error.message : String(error)
       );
       process.exit(1);
