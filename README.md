@@ -8,6 +8,7 @@ A powerful, stealthy website cloner/scraper built with TypeScript that downloads
 
 - 🚀 **Complete Website Cloning** - Downloads HTML, CSS, JavaScript, images, fonts, and all other assets
 - 🔒 **HTTP Proxy Support** - Connect through HTTP proxies with username/password authentication
+- 💾 **Proxy Configuration Management** - Save, load, and manage multiple proxy configurations with password masking
 - 🎯 **SVG Sprite Support** - Properly handles SVG sprites with `xlink:href` references
 - 🔄 **Smart URL Rewriting** - Converts all URLs to relative local paths for offline browsing
 - 🕷️ **Stealthy Crawling** - Configurable delays, random user agents, and realistic headers
@@ -72,11 +73,38 @@ npm run dev -- https://example.com \
   --proxy-user myusername \
   --proxy-pass mypassword
 
-# Using proxy without authentication
+# Save proxy configuration for reuse
 npm run dev -- https://example.com \
   --proxy-host proxy.example.com \
-  --proxy-port 8080
+  --proxy-port 8080 \
+  --proxy-user myusername \
+  --proxy-pass mypassword \
+  --save-proxy my-proxy
+
+# Load saved proxy configuration
+npm run dev -- https://example.com --load-proxy my-proxy
 ```
+
+### Proxy Management
+
+```bash
+# List all saved proxies (passwords masked)
+npm run dev -- list-proxies
+
+# List proxies with passwords visible
+npm run dev -- list-proxies --show-passwords
+
+# Show specific proxy details
+npm run dev -- show-proxy my-proxy
+
+# Show proxy with password visible
+npm run dev -- show-proxy my-proxy --show-password
+
+# Delete a saved proxy
+npm run dev -- delete-proxy my-proxy
+```
+
+📖 **See [PROXY_MANAGEMENT.md](PROXY_MANAGEMENT.md) for complete proxy management documentation.**
 
 ### Advanced Options
 
@@ -100,6 +128,8 @@ npm run dev -- https://example.com \
 
 ## CLI Options
 
+### Main Clone Command
+
 | Option                    | Description                           | Default         |
 | ------------------------- | ------------------------------------- | --------------- |
 | `<url>`                   | Target website URL to clone           | Required        |
@@ -110,11 +140,23 @@ npm run dev -- https://example.com \
 | `--proxy-port <port>`     | Proxy server port                     | -               |
 | `--proxy-user <username>` | Proxy authentication username         | -               |
 | `--proxy-pass <password>` | Proxy authentication password         | -               |
+| `--load-proxy <name>`     | Load saved proxy configuration        | -               |
+| `--save-proxy <name>`     | Save proxy configuration with name    | -               |
 | `--user-agent <agent>`    | Custom user agent string              | Random          |
 | `--follow-external`       | Follow external links                 | `false`         |
 | `--include <patterns...>` | Include URL patterns (regex)          | All             |
 | `--exclude <patterns...>` | Exclude URL patterns (regex)          | None            |
 | `--header <header...>`    | Custom headers (format: "Key: Value") | -               |
+
+### Proxy Management Commands
+
+| Command                             | Description                              |
+| ----------------------------------- | ---------------------------------------- |
+| `list-proxies`                      | List all saved proxy configurations      |
+| `list-proxies --show-passwords`     | List proxies with passwords visible      |
+| `show-proxy <name>`                 | Show details of a specific proxy         |
+| `show-proxy <name> --show-password` | Show proxy details with password visible |
+| `delete-proxy <name>`               | Delete a saved proxy configuration       |
 
 ## Programmatic Usage
 
