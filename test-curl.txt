@@ -1,0 +1,18 @@
+curl 'https://jp.globalbridgeconsultingsas.com/' \
+  -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7' \
+  -H 'accept-language: ja,en-US;q=0.9,en;q=0.8' \
+  -H 'cache-control: max-age=0' \
+  -H 'content-type: application/x-www-form-urlencoded' \
+  -b 'PHPSESSID=96c6a187abc1f5057af8b51e4122f946; f=bW9uZXlfMTc2Mzk4NjI2MV8zMTE=; _cid=cccd6a960ee241dc859d855808f87a00' \
+  -H 'origin: https://jp.globalbridgeconsultingsas.com' \
+  -H 'priority: u=0, i' \
+  -H 'referer: https://jp.globalbridgeconsultingsas.com/' \
+  -H 'sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Windows"' \
+  -H 'sec-fetch-dest: document' \
+  -H 'sec-fetch-mode: navigate' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'upgrade-insecure-requests: 1' \
+  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36' \
+  --data-raw 'data=%7B%22mode%22%3A%22php%22%2C%22screen%22%3A%7B%22availWidth%22%3A2560%2C%22availHeight%22%3A1400%2C%22width%22%3A2560%2C%22height%22%3A1440%2C%22colorDepth%22%3A24%2C%22pixelDepth%22%3A24%2C%22availLeft%22%3A0%2C%22availTop%22%3A0%2C%22orientation%22%3A%22%5Bobject+ScreenOrientation%5D%22%2C%22onchange%22%3Anull%2C%22isExtended%22%3Atrue%7D%7D'

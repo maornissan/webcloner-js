@@ -7,6 +7,9 @@ A powerful, stealthy website cloner/scraper built with TypeScript that downloads
 ## Features
 
 - 🚀 **Complete Website Cloning** - Downloads HTML, CSS, JavaScript, images, fonts, and all other assets
+- 🛡️ **Anti-Bot Protection Bypass** - Automatically detects and bypasses JavaScript-based protection (Cloudflare, fingerprinting, etc.)
+- 📋 **Fetch/Curl Import** - Copy fetch() or curl from browser DevTools and paste directly - auto-extracts URL, headers & cookies
+- 🍪 **Cookie Support** - Inject cookies and automatically persist session state across requests
 - 🔒 **HTTP Proxy Support** - Connect through HTTP proxies with username/password authentication
 - 💾 **Proxy Configuration Management** - Save, load, and manage multiple proxy configurations with password masking
 - 🎯 **SVG Sprite Support** - Properly handles SVG sprites with `xlink:href` references
@@ -188,19 +191,20 @@ await cloner.clone();
 
 ## How It Works
 
-1. **Initial Request** - Downloads the target URL's HTML content
-2. **Asset Extraction** - Parses HTML to find all assets:
+1. **Initial Request** - Downloads the target URL's HTML content using fast HTTP client
+2. **Protection Detection** - Automatically detects anti-bot protection and switches to browser mode if needed
+3. **Asset Extraction** - Parses HTML to find all assets:
    - Stylesheets (`<link rel="stylesheet">`)
    - Scripts (`<script src>`)
    - Images (`<img>`, `srcset`, background images)
    - SVG sprites (`<use xlink:href>`)
    - Fonts (from CSS `@font-face`)
    - Videos, audio, iframes, etc.
-3. **Asset Download** - Downloads each asset with proper referer headers
-4. **CSS Processing** - Parses CSS files to find and download referenced assets
-5. **URL Rewriting** - Converts all absolute URLs to relative local paths
-6. **Link Crawling** - Follows links within the same domain (respecting depth limit)
-7. **File Organization** - Saves files maintaining directory structure
+4. **Asset Download** - Downloads each asset with proper referer headers
+5. **CSS Processing** - Parses CSS files to find and download referenced assets
+6. **URL Rewriting** - Converts all absolute URLs to relative local paths
+7. **Link Crawling** - Follows links within the same domain (respecting depth limit)
+8. **File Organization** - Saves files maintaining directory structure
 
 ## SVG Sprite Support
 
@@ -313,6 +317,15 @@ Contributions are welcome! Please feel free to submit issues or pull requests.
 - Check proxy host and port
 - Ensure proxy supports HTTP/HTTPS
 
+### Anti-bot protection detected
+
+If you see "🔒 Anti-bot protection detected, using browser mode...":
+
+- This is normal! The tool automatically handles it
+- The download will take a bit longer (2-5 seconds per page)
+- If it fails, the site may have advanced CAPTCHA protection
+- See [ANTI_BOT_PROTECTION.md](ANTI_BOT_PROTECTION.md) for details
+
 ## Examples
 
 ### Clone a blog
@@ -346,3 +359,42 @@ npm run dev -- https://api.example.com \
   --header "Authorization: Bearer YOUR_TOKEN" \
   --header "X-API-Key: YOUR_KEY"
 ```
+
+### Clone with cookies
+
+```bash
+# With cookie file
+npm run dev -- https://members.example.com \
+  --cookie-file ./cookies.json \
+  -o ./members-content
+
+# With inline cookies
+npm run dev -- https://example.com \
+  --cookie "session=abc123" \
+  --cookie "user_id=456;domain=example.com"
+```
+
+📖 **See [COOKIE_SUPPORT.md](COOKIE_SUPPORT.md) for complete cookie documentation.**
+
+### Clone with fetch request or curl command (easiest!)
+
+```bash
+# Copy from browser DevTools:
+# - Fetch: F12 → Network → Right-click → Copy as fetch
+# - Curl: F12 → Network → Right-click → Copy as cURL
+
+# Save to file and use:
+npm run dev -- --fetch-file ./request.txt -o ./output
+
+# Or inline (fetch):
+npm run dev -- --fetch 'fetch("https://example.com", {
+  "headers": {
+    "cookie": "session=abc123"
+  }
+})' -o ./output
+
+# Or inline (curl):
+npm run dev -- --fetch 'curl "https://example.com" -H "cookie: session=abc123"' -o ./output
+```
+
+📋 **See [FETCH_REQUEST_IMPORT.md](FETCH_REQUEST_IMPORT.md) and [CURL_SUPPORT.md](CURL_SUPPORT.md) for complete guides.**

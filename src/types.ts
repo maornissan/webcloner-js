@@ -5,6 +5,17 @@ export interface ProxyConfig {
   password?: string;
 }
 
+export interface Cookie {
+  name: string;
+  value: string;
+  domain?: string;
+  path?: string;
+  expires?: number;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: "Strict" | "Lax" | "None";
+}
+
 export interface ClonerConfig {
   targetUrl: string;
   outputDir: string;
@@ -17,6 +28,7 @@ export interface ClonerConfig {
   includePatterns?: string[];
   excludePatterns?: string[];
   inlineSvgSprites?: boolean;
+  cookies?: Cookie[];
 }
 
 export interface DownloadedAsset {

@@ -18,6 +18,9 @@ interface ElectronAPI {
     error?: string;
   }>;
   deleteProxy: (name: string) => Promise<{ success: boolean; error?: string }>;
+  parseFetch: (
+    fetchString: string
+  ) => Promise<{ success: boolean; parsed?: any; error?: string }>;
 }
 
 // Access electronAPI directly from window
@@ -41,6 +44,9 @@ let toggleProxyPassBtn: HTMLButtonElement;
 let loadProxyModal: HTMLDivElement;
 let saveProxyModal: HTMLDivElement;
 let manageProxiesModal: HTMLDivElement;
+
+// Fetch Parser Elements
+let parseFetchBtn: HTMLButtonElement;
 
 // State
 let isCloning = false;
@@ -77,6 +83,9 @@ function init() {
   manageProxiesModal = document.getElementById(
     "manageProxiesModal"
   ) as HTMLDivElement;
+
+  // Fetch Parser Elements
+  parseFetchBtn = document.getElementById("parseFetchBtn") as HTMLButtonElement;
 
   console.log("DOM elements:", {
     cloneForm: !!cloneForm,
@@ -120,6 +129,9 @@ function setupEventListeners() {
   // Advanced settings toggle
   advancedToggle.addEventListener("click", toggleAdvancedSettings);
   console.log("Advanced toggle listener attached");
+
+  // Fetch Parser Button
+  parseFetchBtn.addEventListener("click", handleParseFetch);
 
   // Proxy Management Buttons
   loadProxyBtn.addEventListener("click", openLoadProxyModal);
@@ -237,6 +249,11 @@ async function handleStartClone(e: Event) {
     document.getElementById("headers") as HTMLTextAreaElement
   ).value.trim();
 
+  // Cookies
+  const cookies = (
+    document.getElementById("cookies") as HTMLTextAreaElement
+  ).value.trim();
+
   // Validate URL
   try {
     new URL(url);
@@ -276,6 +293,7 @@ async function handleStartClone(e: Event) {
     includePatterns,
     excludePatterns,
     headers,
+    cookies,
   };
 
   const result = await getAPI().startClone(options);
@@ -305,6 +323,67 @@ async function handleSelectDirectory() {
   if (directory) {
     (document.getElementById("outputDir") as HTMLInputElement).value =
       directory;
+  }
+}
+
+async function handleParseFetch() {
+  const fetchTextarea = document.getElementById(
+    "fetchRequest"
+  ) as HTMLTextAreaElement;
+  const fetchString = fetchTextarea.value.trim();
+
+  if (!fetchString) {
+    addTerminalLine("⚠️ Please paste a fetch request first", "warning");
+    return;
+  }
+
+  try {
+    const result = await getAPI().parseFetch(fetchString);
+
+    if (!result.success || !result.parsed) {
+      addTerminalLine(
+        `❌ Failed to parse fetch request: ${result.error || "Unknown error"}`,
+        "error"
+      );
+      return;
+    }
+
+    const { url, headers, cookies } = result.parsed;
+
+    // Update URL field
+    (document.getElementById("url") as HTMLInputElement).value = url;
+
+    // Update headers field
+    if (Object.keys(headers).length > 0) {
+      const headersTextarea = document.getElementById(
+        "headers"
+      ) as HTMLTextAreaElement;
+      headersTextarea.value = JSON.stringify(headers, null, 2);
+    }
+
+    // Update cookies field
+    if (cookies.length > 0) {
+      const cookiesTextarea = document.getElementById(
+        "cookies"
+      ) as HTMLTextAreaElement;
+      cookiesTextarea.value = JSON.stringify(cookies, null, 2);
+    }
+
+    const requestType = fetchString.trim().startsWith("curl")
+      ? "curl command"
+      : "fetch request";
+    addTerminalLine(`✓ Parsed ${requestType} successfully`, "info");
+    addTerminalLine(`  URL: ${url}`, "info");
+    addTerminalLine(`  Headers: ${Object.keys(headers).length}`, "info");
+    addTerminalLine(`  Cookies: ${cookies.length}`, "info");
+
+    // Clear the fetch textarea
+    fetchTextarea.value = "";
+  } catch (error) {
+    addTerminalLine(
+      `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+      "error"
+    );
   }
 }
 

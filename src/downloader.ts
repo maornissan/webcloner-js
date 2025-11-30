@@ -1,22 +1,36 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import type { ProxyConfig } from "./types.js";
+import type { ProxyConfig, Cookie } from "./types.js";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { URL } from "url";
+import { BrowserDownloader } from "./browser-downloader.js";
 
 export class Downloader {
   private axiosInstance: AxiosInstance;
   private userAgent: string;
   private headers: Record<string, string>;
+  private browserDownloader: BrowserDownloader | null = null;
+  private proxy: ProxyConfig | undefined;
+  private cookies: Cookie[];
+  private cookieJar: Map<string, string> = new Map();
 
   constructor(
     proxy?: ProxyConfig,
     userAgent?: string,
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    cookies?: Cookie[]
   ) {
     this.userAgent = userAgent || this.getRandomUserAgent();
     this.headers = headers || {};
+    this.proxy = proxy ?? undefined;
+    this.cookies = cookies || [];
+
+    // Build initial cookie jar
+    this.cookies.forEach((cookie) => {
+      const key = `${cookie.domain || ""}:${cookie.name}`;
+      this.cookieJar.set(key, cookie.value);
+    });
 
     const config: AxiosRequestConfig = {
       timeout: 30000,
@@ -30,6 +44,7 @@ export class Downloader {
         ...this.headers,
       },
       validateStatus: (status: number) => status < 500, // Accept all responses < 500
+      withCredentials: true,
     };
 
     // Configure proxy if provided
@@ -75,21 +90,153 @@ export class Downloader {
         resourceType || "document"
       );
 
+      // Add cookies to request
+      const cookieHeader = this.getCookieHeader(url);
+      if (cookieHeader) {
+        headers["Cookie"] = cookieHeader;
+      }
+
       const response = await this.axiosInstance.get(url, {
         headers,
         responseType: "text",
       });
 
+      // Store cookies from response
+      this.storeCookiesFromResponse(url, response.headers);
+
       if (response.status >= 400) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      return response.data;
+      // Check if the response contains anti-bot protection
+      const html = response.data;
+      if (await BrowserDownloader.requiresBrowser(html)) {
+        console.log("  🔒 Anti-bot protection detected, using browser mode...");
+        return await this.downloadWithBrowser(url, referer);
+      }
+
+      return html;
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(`Failed to download ${url}: ${error.message}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Download using browser (Puppeteer) for pages with anti-bot protection
+   */
+  private async downloadWithBrowser(
+    url: string,
+    referer?: string
+  ): Promise<string> {
+    if (!this.browserDownloader) {
+      this.browserDownloader = new BrowserDownloader(
+        this.proxy,
+        this.userAgent,
+        this.headers,
+        this.cookies
+      );
+      await this.browserDownloader.initialize();
+    }
+
+    const html = await this.browserDownloader.downloadText(url, referer);
+
+    // Update our cookies with any new ones from the browser
+    const browserCookies = this.browserDownloader.exportCookies();
+    browserCookies.forEach((cookie) => {
+      const key = `${cookie.domain || ""}:${cookie.name}`;
+      this.cookieJar.set(key, cookie.value);
+    });
+
+    return html;
+  }
+
+  /**
+   * Get cookie header for a URL
+   */
+  private getCookieHeader(url: string): string {
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+    const cookies: string[] = [];
+
+    this.cookieJar.forEach((value, key) => {
+      const [cookieDomain, name] = key.split(":");
+      // Match domain or subdomain
+      if (
+        !cookieDomain ||
+        domain.endsWith(cookieDomain) ||
+        cookieDomain.endsWith(domain)
+      ) {
+        cookies.push(`${name}=${value}`);
+      }
+    });
+
+    return cookies.join("; ");
+  }
+
+  /**
+   * Store cookies from response headers
+   */
+  private storeCookiesFromResponse(url: string, headers: any): void {
+    const setCookieHeaders = headers["set-cookie"];
+    if (!setCookieHeaders) return;
+
+    const urlObj = new URL(url);
+    const domain = urlObj.hostname;
+
+    const cookieArray = Array.isArray(setCookieHeaders)
+      ? setCookieHeaders
+      : [setCookieHeaders];
+
+    cookieArray.forEach((cookieStr: string) => {
+      const parts = cookieStr.split(";")[0]?.split("=");
+      if (parts && parts.length >= 2) {
+        const name = parts[0]?.trim();
+        const value = parts.slice(1).join("=").trim();
+        if (name) {
+          const key = `${domain}:${name}`;
+          this.cookieJar.set(key, value);
+        }
+      }
+    });
+  }
+
+  /**
+   * Get all collected cookies
+   */
+  getCollectedCookies(): Cookie[] {
+    const cookies: Cookie[] = [];
+    this.cookieJar.forEach((value, key) => {
+      const parts = key.split(":");
+      const domain = parts[0];
+      const name = parts[1];
+      if (name) {
+        const cookie: Cookie = { name, value };
+        if (domain) {
+          cookie.domain = domain;
+        }
+        cookies.push(cookie);
+      }
+    });
+    return cookies;
+  }
+
+  /**
+   * Close browser if it was initialized
+   */
+  async cleanup(): Promise<void> {
+    if (this.browserDownloader) {
+      // Get final cookies before closing
+      const browserCookies = this.browserDownloader.exportCookies();
+      browserCookies.forEach((cookie) => {
+        const key = `${cookie.domain || ""}:${cookie.name}`;
+        this.cookieJar.set(key, cookie.value);
+      });
+
+      await this.browserDownloader.close();
+      this.browserDownloader = null;
     }
   }
 

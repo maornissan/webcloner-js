@@ -36,7 +36,8 @@ export class WebsiteCloner {
     this.downloader = new Downloader(
       this.config.proxy,
       this.config.userAgent,
-      this.config.headers
+      this.config.headers,
+      this.config.cookies
     );
 
     this.visitedUrls = new Set();
@@ -88,6 +89,9 @@ export class WebsiteCloner {
 
     // Save URL mapping for reference
     await this.saveUrlMapping();
+
+    // Cleanup browser resources
+    await this.downloader.cleanup();
 
     this.stats.endTime = Date.now();
     this.printStats();

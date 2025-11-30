@@ -374,6 +374,49 @@
                       placeholder='{"Authorization": "Bearer token", "X-Custom": "value"}'
                     ></textarea>
                   </div>
+
+                  <!-- Fetch Request -->
+                  <div class="form-group">
+                    <label for="fetchRequest" class="form-label">
+                      <span class="label-text"
+                        >Fetch Request or Curl Command (from DevTools)</span
+                      >
+                      <span class="label-hint"
+                        >Paste fetch() call or curl command from browser -
+                        auto-extracts URL, headers & cookies</span
+                      >
+                    </label>
+                    <textarea
+                      id="fetchRequest"
+                      class="form-textarea"
+                      rows="8"
+                      placeholder='Paste fetch request or curl command from browser DevTools&#10;&#10;Fetch example (F12 → Network → Right-click → Copy as fetch):&#10;fetch("https://example.com", {&#10;  "headers": { "cookie": "session=abc123" }&#10;});&#10;&#10;Curl example (F12 → Network → Right-click → Copy as cURL):&#10;curl "https://example.com" -H "cookie: session=abc123"'
+                    ></textarea>
+                    <button
+                      type="button"
+                      id="parseFetchBtn"
+                      class="btn btn-secondary"
+                      style="margin-top: 8px"
+                    >
+                      Parse Request
+                    </button>
+                  </div>
+
+                  <!-- Cookies -->
+                  <div class="form-group">
+                    <label for="cookies" class="form-label">
+                      <span class="label-text">Cookies (JSON)</span>
+                      <span class="label-hint"
+                        >Inject cookies into requests</span
+                      >
+                    </label>
+                    <textarea
+                      id="cookies"
+                      class="form-textarea"
+                      rows="4"
+                      placeholder='[{"name": "session", "value": "abc123", "domain": "example.com"}]'
+                    ></textarea>
+                  </div>
                 </div>
               </div>
 

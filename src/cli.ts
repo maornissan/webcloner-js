@@ -2,8 +2,9 @@
 
 import { Command } from "commander";
 import { WebsiteCloner } from "./cloner.js";
-import type { ClonerConfig, ProxyConfig } from "./types.js";
+import type { ClonerConfig, ProxyConfig, Cookie } from "./types.js";
 import * as path from "path";
+import * as fs from "fs/promises";
 import {
   saveProxyConfig,
   loadProxyConfig,
@@ -11,6 +12,11 @@ import {
   deleteProxyConfig,
   getConfigPath,
 } from "./config-manager.js";
+import {
+  parseRequest,
+  parseFetchRequestFromFile,
+  formatParsedRequest,
+} from "./fetch-parser.js";
 
 const program = new Command();
 
@@ -40,8 +46,45 @@ program
   .option("--include <patterns...>", "Include URL patterns (regex)")
   .option("--exclude <patterns...>", "Exclude URL patterns (regex)")
   .option("--header <header...>", 'Custom headers in format "Key: Value"')
+  .option(
+    "--cookie <cookies...>",
+    'Cookies in format "name=value" or "name=value;domain=example.com"'
+  )
+  .option("--cookie-file <path>", "Load cookies from JSON file")
+  .option(
+    "--fetch <request>",
+    "Parse fetch request or curl command from string"
+  )
+  .option(
+    "--fetch-file <path>",
+    "Parse fetch request or curl command from file"
+  )
   .action(async (url: string, options) => {
     try {
+      // Parse fetch request if provided
+      let fetchParsed = null;
+      if (options.fetch || options.fetchFile) {
+        try {
+          fetchParsed = options.fetchFile
+            ? await parseFetchRequestFromFile(options.fetchFile)
+            : parseRequest(options.fetch);
+
+          console.log("✓ Parsed fetch/curl request:");
+          console.log(formatParsedRequest(fetchParsed));
+          console.log("");
+
+          // Override URL if not explicitly provided
+          if (url === options.fetch || url === options.fetchFile) {
+            url = fetchParsed.url;
+          }
+        } catch (error) {
+          console.error(
+            `❌ Failed to parse request: ${error instanceof Error ? error.message : String(error)}`
+          );
+          process.exit(1);
+        }
+      }
+
       // Parse proxy configuration
       let proxy: ProxyConfig | undefined;
 
@@ -79,11 +122,76 @@ program
 
       // Parse custom headers
       const headers: Record<string, string> = {};
+
+      // Add headers from fetch request first
+      if (fetchParsed) {
+        Object.assign(headers, fetchParsed.headers);
+      }
+
+      // Then add/override with CLI headers
       if (options.header) {
         for (const header of options.header) {
           const [key, ...valueParts] = header.split(":");
           if (key && valueParts.length > 0) {
             headers[key.trim()] = valueParts.join(":").trim();
+          }
+        }
+      }
+
+      // Parse cookies
+      const cookies: Cookie[] = [];
+
+      // Add cookies from fetch request first
+      if (fetchParsed) {
+        cookies.push(...fetchParsed.cookies);
+      }
+
+      // Load from file if specified
+      if (options.cookieFile) {
+        try {
+          const cookieFileContent = await fs.readFile(
+            options.cookieFile,
+            "utf-8"
+          );
+          const loadedCookies = JSON.parse(cookieFileContent);
+          if (Array.isArray(loadedCookies)) {
+            cookies.push(...loadedCookies);
+            console.log(`✓ Loaded ${loadedCookies.length} cookies from file`);
+          }
+        } catch (error) {
+          console.error(
+            `❌ Failed to load cookie file: ${error instanceof Error ? error.message : String(error)}`
+          );
+          process.exit(1);
+        }
+      }
+
+      // Parse command-line cookies
+      if (options.cookie) {
+        for (const cookieStr of options.cookie) {
+          const parts = cookieStr.split(";");
+          const [nameValue, ...attributes] = parts;
+          const [name, value] = nameValue.split("=");
+
+          if (name && value) {
+            const cookie: Cookie = {
+              name: name.trim(),
+              value: value.trim(),
+            };
+
+            // Parse attributes
+            for (const attr of attributes) {
+              const [attrName, attrValue] = attr
+                .split("=")
+                .map((s: string) => s.trim());
+              if (attrName.toLowerCase() === "domain" && attrValue) {
+                cookie.domain = attrValue;
+              } else if (attrName.toLowerCase() === "path" && attrValue) {
+                cookie.path = attrValue;
+              }
+            }
+
+            cookies.push(cookie);
           }
         }
       }
@@ -101,6 +209,7 @@ program
         includePatterns: options.include || [],
         excludePatterns: options.exclude || [],
         ...(Object.keys(headers).length > 0 && { headers }),
+        ...(cookies.length > 0 && { cookies }),
       };
 
       // Validate URL

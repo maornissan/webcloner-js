@@ -31,7 +31,9 @@
     "cheerio": "^1.0.0-rc.12",
     "commander": "^11.1.0",
     "https-proxy-agent": "^7.0.2",
-    "mime-types": "^2.1.35"
+    "mime-types": "^2.1.35",
+    "playwright": "^1.56.1",
+    "puppeteer": "^23.0.0"
   },
   "devDependencies": {
     "@types/mime-types": "^2.1.4",

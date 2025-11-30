@@ -1,13 +1,14 @@
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import * as path from "path";
 import { WebsiteCloner } from "../src/cloner.js";
-import type { ClonerConfig, ProxyConfig } from "../src/types.js";
+import type { ClonerConfig, ProxyConfig, Cookie } from "../src/types.js";
 import {
   saveProxyConfig,
   loadProxyConfig,
   listProxyConfigs,
   deleteProxyConfig,
 } from "../src/config-manager.js";
+import { parseRequest } from "../src/fetch-parser.js";
 
 // __dirname is available in CommonJS
 declare const __dirname: string;
@@ -106,6 +107,19 @@ ipcMain.handle("start-clone", async (_event, options) => {
       }
     }
 
+    // Parse cookies
+    const cookies: Cookie[] = [];
+    if (options.cookies) {
+      try {
+        const parsedCookies = JSON.parse(options.cookies);
+        if (Array.isArray(parsedCookies)) {
+          cookies.push(...parsedCookies);
+        }
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
     // Build configuration
     const config: ClonerConfig = {
       targetUrl: options.url,
@@ -119,6 +133,7 @@ ipcMain.handle("start-clone", async (_event, options) => {
       includePatterns: options.includePatterns || [],
       excludePatterns: options.excludePatterns || [],
       ...(Object.keys(headers).length > 0 && { headers }),
+      ...(cookies.length > 0 && { cookies }),
     };
 
     // Validate URL
@@ -169,6 +184,18 @@ ipcMain.handle("stop-clone", async () => {
   // Note: WebsiteCloner doesn't have a stop method, but we can set it to null
   currentCloner = null;
   return { success: true };
+});
+
+ipcMain.handle("parse-fetch", async (_event, fetchString: string) => {
+  try {
+    const parsed = parseRequest(fetchString);
+    return { success: true, parsed };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
 });
 
 // Proxy Management IPC Handlers

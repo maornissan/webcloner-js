@@ -18,4 +18,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   loadProxy: (name: string) => ipcRenderer.invoke("load-proxy", name),
   listProxies: () => ipcRenderer.invoke("list-proxies"),
   deleteProxy: (name: string) => ipcRenderer.invoke("delete-proxy", name),
+  // Fetch Parser API
+  parseFetch: (fetchString: string) =>
+    ipcRenderer.invoke("parse-fetch", fetchString),
 });
